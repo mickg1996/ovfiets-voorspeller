@@ -1,0 +1,791 @@
+<title>OV-Fietsvoorraad voorspeller</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#eef1f5; --panel:#ffffff; --panel2:#f6f8fb; --ink:#0e1726; --ink2:#46546a; --ink3:#6f7c90; --line:#dde3ea; --grid:#edf0f4;
+  --band:#0f1b2d; --band-ink:#f2f5fa; --band-ink2:#a3b3ca; --band-line:#24344d; --band-chip:#1a2a42;
+  --actual:#2a78d6; --actual-soft:#a9c7ec; --pred:#eb6834; --nomeld:#8a95a8; --rain:#159bb0; --rain-soft:rgba(21,155,176,.35);
+  --event:#6a58d6; --event-bg:rgba(106,88,214,.10); --event-soft:#ece9fb;
+  --krap:#c9302c; --krap-bg:#fdecea; --ok:#1c8048; --ok-bg:#e4f4ea; --warn:#a86200; --warn-bg:#fdf1dc; --krapzone:rgba(201,48,44,.06);
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --shadow:0 1px 2px rgba(14,23,38,.05),0 4px 16px rgba(14,23,38,.05);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
+  --bg:#0c1118; --panel:#141b25; --panel2:#19212d; --ink:#ecf0f6; --ink2:#b1bccb; --ink3:#8793a5; --line:#253041; --grid:#1d2633;
+  --band:#0a1422; --band-ink:#ecf0f6; --band-ink2:#94a6bf; --band-line:#22324a; --band-chip:#15233a;
+  --actual:#4b93ea; --actual-soft:#2c4a70; --pred:#f07a48; --nomeld:#76819a; --rain:#3cc0d4; --rain-soft:rgba(60,192,212,.35);
+  --event:#9d90f0; --event-bg:rgba(157,144,240,.12); --event-soft:#241f45;
+  --krap:#ff6f66; --krap-bg:#3a1b1a; --ok:#4fc47f; --ok-bg:#132c1e; --warn:#f0aa3c; --warn-bg:#35270f; --krapzone:rgba(255,111,102,.07);
+  --shadow:0 1px 2px rgba(0,0,0,.3);}}
+:root[data-theme="dark"]{color-scheme:dark;
+  --bg:#0c1118; --panel:#141b25; --panel2:#19212d; --ink:#ecf0f6; --ink2:#b1bccb; --ink3:#8793a5; --line:#253041; --grid:#1d2633;
+  --band:#0a1422; --band-ink:#ecf0f6; --band-ink2:#94a6bf; --band-line:#22324a; --band-chip:#15233a;
+  --actual:#4b93ea; --actual-soft:#2c4a70; --pred:#f07a48; --nomeld:#76819a; --rain:#3cc0d4; --rain-soft:rgba(60,192,212,.35);
+  --event:#9d90f0; --event-bg:rgba(157,144,240,.12); --event-soft:#241f45;
+  --krap:#ff6f66; --krap-bg:#3a1b1a; --ok:#4fc47f; --ok-bg:#132c1e; --warn:#f0aa3c; --warn-bg:#35270f; --krapzone:rgba(255,111,102,.07);
+  --shadow:0 1px 2px rgba(0,0,0,.3);}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14.5px;line-height:1.5;padding-inline:16px;padding-block:16px 40px;margin:0}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:16px}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--actual);outline-offset:2px}
+.num,.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+[hidden]{display:none!important}
+
+/* kopband */
+.top{background:var(--band);color:var(--band-ink);border-radius:16px;padding:20px 22px 16px;display:grid;gap:16px}
+.top-row{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.brand{display:grid;gap:2px}
+.eyebrow{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--band-ink2);font-weight:600}
+h1{margin:0;font-size:clamp(22px,3.2vw,30px);font-weight:600;letter-spacing:-.015em}
+.top-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.nav{display:flex;gap:2px;flex-wrap:wrap}
+.nav a{color:var(--band-ink2);text-decoration:none;font-size:13.5px;font-weight:500;padding:6px 8px;border-radius:7px}
+.nav a:hover{color:var(--band-ink);background:var(--band-chip)}
+.need-btn{background:var(--pred);color:#fff;text-decoration:none;font-weight:600;font-size:13.5px;padding:8px 14px;border-radius:9px;white-space:nowrap}
+.need-btn:hover{filter:brightness(1.07)}
+.when{display:flex;align-items:center;gap:6px}
+.when .clock{font-family:var(--mono);font-size:clamp(17px,2.4vw,22px);font-weight:500;min-width:13.5ch;text-align:center}
+.ib{border:1px solid var(--band-line);background:var(--band-chip);color:var(--band-ink);border-radius:8px;width:34px;height:34px;cursor:pointer;display:grid;place-items:center}
+.ib:hover{border-color:var(--band-ink2)}
+.ib[aria-pressed="true"]{background:var(--pred);border-color:var(--pred);color:#fff}
+.seg{display:flex;gap:4px;flex-wrap:wrap;background:var(--band-chip);padding:4px;border-radius:10px;border:1px solid var(--band-line)}
+.seg button{border:0;background:transparent;color:var(--band-ink2);padding:7px 12px;border-radius:7px;cursor:pointer;font-weight:500;font-size:13.5px;display:inline-flex;align-items:center;gap:7px}
+.seg button[aria-pressed="true"]{background:var(--band-ink);color:var(--band)}
+.seg button:hover:not([aria-pressed="true"]){color:var(--band-ink)}
+.seg .dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.seg .dot.let{background:var(--warn)} .seg .dot.krap{background:var(--krap)}
+.scrub{display:grid;gap:6px}
+.track{position:relative;height:22px}
+.track input{position:absolute;inset:0;width:100%;margin:0;accent-color:var(--pred);background:transparent}
+.days{display:grid;grid-template-columns:repeat(4,1fr);font-size:11.5px;color:var(--band-ink2);font-family:var(--mono)}
+.days span{border-left:1px solid var(--band-line);padding-left:6px}
+.ticks{position:absolute;left:0;right:0;top:50%;height:0;pointer-events:none}
+.ticks i{position:absolute;top:-10px;height:4px;border-radius:2px}
+.ticks i.ev{background:var(--event)} .ticks i.rn{background:var(--rain);top:6px}
+.presets{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.presets .lbl{font-size:12px;color:var(--band-ink2);margin-right:4px}
+.presets button{border:1px solid var(--band-line);background:transparent;color:var(--band-ink);border-radius:999px;padding:4px 11px;font-size:12.5px;cursor:pointer}
+.presets button:hover{border-color:var(--band-ink2)}
+.presets .kbd{margin-left:auto;font-size:12px;color:var(--band-ink2)}
+.presets kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--band-line);border-radius:4px;padding:0 5px}
+@media (max-width:640px){.presets .kbd{display:none}}
+
+/* kpi's */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:grid;gap:8px;box-shadow:var(--shadow);align-content:start}
+.kpi-h{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.kpi-h span{font-size:12px;color:var(--ink3);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.kpi .big{font-family:var(--mono);font-size:32px;font-weight:500;line-height:1;letter-spacing:-.02em}
+.kpi .big small{font-size:14px;color:var(--ink3);font-weight:400;margin-left:4px}
+.bar{height:5px;border-radius:3px;background:var(--grid);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:3px}
+.kans{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:var(--ink2)}
+.kans b{font-family:var(--mono);font-weight:600}
+.kpi .foot{font-size:12.5px;color:var(--ink3);display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--grid);padding-top:7px}
+.pill{font-size:11.5px;font-weight:600;padding:3px 8px;border-radius:999px;white-space:nowrap;font-style:normal}
+.pill.krap{color:var(--krap);background:var(--krap-bg)} .pill.let{color:var(--warn);background:var(--warn-bg)} .pill.ok{color:var(--ok);background:var(--ok-bg)}
+.pill.ev{color:var(--event);background:var(--event-soft)} .pill.rn{color:var(--rain);background:var(--grid)} .pill.mute{color:var(--ink3);background:var(--grid)}
+
+/* hoofdgrid */
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+@media (max-width:900px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);min-width:0;scroll-margin-top:16px}
+.card-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.card-h h2{font-size:15px;margin:0;font-weight:600}
+.card-h .meta{font-size:12.5px;color:var(--ink3)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink2);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:16px;height:0;border-top:2px solid}
+.swb{width:12px;height:10px;border-radius:2px;background:var(--event-bg);border:1px solid var(--event)}
+.swr{width:6px;height:10px;border-radius:1px;background:var(--rain)}
+.chartbox{position:relative}
+.chartbox svg{display:block;width:100%;height:auto}
+svg{flex:none}
+.tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:12px;box-shadow:var(--shadow);white-space:nowrap;top:6px}
+
+/* meldingen */
+.feed{display:grid;gap:10px}
+.mel{display:grid;grid-template-columns:32px 1fr;gap:10px;padding:12px;border-radius:12px;background:var(--panel2);border:1px solid var(--line)}
+.mel.dim{opacity:.62}
+.ico{width:32px;height:32px;border-radius:9px;display:grid;place-items:center}
+.ico.ev{background:var(--event-soft);color:var(--event)} .ico.krap{background:var(--krap-bg);color:var(--krap)} .ico.cal{background:var(--warn-bg);color:var(--warn)} .ico.rn{background:var(--grid);color:var(--rain)}
+.mel h3{margin:0;font-size:13.5px;font-weight:600;line-height:1.3}
+.mel .sub{font-size:12.5px;color:var(--ink2);margin-top:2px}
+.mel .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.mel .eff{font-size:12.5px;margin-top:6px;color:var(--ink)}
+.mel .eff b{font-family:var(--mono);font-weight:600}
+.empty{font-size:13px;color:var(--ink3);padding:10px 2px}
+
+/* tabel */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{font-size:11.5px;color:var(--ink3);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+tbody tr.row{cursor:pointer}
+tbody tr.row:hover,tbody tr.sel{background:var(--panel2)}
+tbody tr.sel td:first-child{font-weight:600}
+td.num{font-family:var(--mono)}
+td.win{color:var(--ok);font-weight:600}
+.mini{display:inline-flex;align-items:center;gap:8px}
+.mini .bar{width:56px}
+.grid3{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:900px){.grid3{grid-template-columns:1fr}}
+.cal{display:grid;gap:8px}
+.note{font-size:12.5px;color:var(--ink3);margin:10px 0 0;max-width:70ch}
+.stat{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px}
+.stat div{display:grid}
+.stat b{font-family:var(--mono);font-size:22px;font-weight:500}
+.stat span{font-size:12px;color:var(--ink3)}
+
+/* fietsmomenten */
+.need{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:22px}
+@media (max-width:900px){.need{grid-template-columns:1fr}}
+.form{display:grid;gap:14px;align-content:start}
+.fields{display:grid;grid-template-columns:2fr 1.2fr 1fr;gap:10px}
+@media (max-width:560px){.fields{grid-template-columns:1fr 1fr}.fields .f:first-child{grid-column:1/-1}}
+.f{display:grid;gap:5px}
+.f label,.fl{font-size:12px;color:var(--ink3);font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+select,input[type=text]{font:inherit;font-size:14px;color:var(--ink);background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}
+@media (max-width:560px){.opts{grid-template-columns:1fr}}
+.opts .fl{grid-column:1/-1}
+.opt{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;cursor:pointer}
+.opt input{margin-top:3px;accent-color:var(--pred);width:16px;height:16px;flex:none}
+.opt small{display:block;color:var(--ink3);font-size:12.5px}
+.go{justify-self:start;border:0;background:var(--ink);color:var(--panel);font-weight:600;padding:9px 16px;border-radius:9px;cursor:pointer}
+.go:disabled{opacity:.5;cursor:default}
+.saved{display:grid;gap:6px}
+.saved:empty{display:none}
+.sv{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;font-size:13px;cursor:pointer;background:var(--panel2)}
+.sv.on{border-color:var(--pred)}
+.sv button{border:0;background:transparent;color:var(--ink3);cursor:pointer;font-size:12.5px}
+.phone{background:linear-gradient(160deg,#27354d,#101826);border-radius:28px;padding:20px 14px 18px;display:grid;gap:10px;align-content:start;min-height:460px;box-shadow:inset 0 0 0 6px #0b111b}
+.phone .ptime{color:#fff;text-align:center;font-family:var(--mono);font-size:32px;font-weight:500;margin-top:4px}
+.phone .pdate{color:#b9c6da;text-align:center;font-size:12.5px;margin-top:-8px;margin-bottom:6px}
+.pn{background:rgba(245,248,252,.94);color:#0e1726;border-radius:14px;padding:10px 12px;display:grid;grid-template-columns:28px 1fr;gap:9px;font-size:12.5px;line-height:1.4}
+.pn .app{width:28px;height:28px;border-radius:7px;background:#eb6834;display:grid;place-items:center;color:#fff}
+.pn .app.warn{background:#c9302c} .pn .app.ev{background:#6a58d6} .pn .app.rn{background:#159bb0} .pn .app.done{background:#7a879b}
+.pn .ph{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;color:#56637a}
+.pn b{font-size:13px;display:block;color:#0e1726}
+.pn.after{background:rgba(245,248,252,.62)}
+.phone .pnote{color:#9fb0c8;font-size:11.5px;text-align:center;margin-top:4px}
+details.echt{border:1px solid var(--line);border-radius:12px;background:var(--panel2);padding:10px 14px}
+details.echt summary{cursor:pointer;font-weight:600;font-size:13.5px}
+details.echt ol{margin:10px 0 4px;padding-left:20px;display:grid;gap:6px;font-size:13.5px;color:var(--ink2)}
+.codeline{display:flex;gap:8px;align-items:center;margin-top:4px}
+.codeline code{flex:1;min-width:0;overflow-x:auto;white-space:nowrap;font-family:var(--mono);font-size:12.5px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 9px;color:var(--ink)}
+.codeline button{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:6px 10px;font-size:12.5px;cursor:pointer}
+
+/* scanner */
+.scan-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.srcs{display:flex;gap:8px;flex-wrap:wrap}
+.src{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink2);background:var(--panel2);border:1px solid var(--line);padding:5px 10px;border-radius:999px}
+.src i{width:8px;height:8px;border-radius:50%;background:var(--ink3)}
+.src.busy i{background:var(--warn);animation:pulse 1s infinite}
+.src.done i{background:var(--ok)}
+@keyframes pulse{50%{opacity:.3}}
+@media (prefers-reduced-motion:reduce){.src.busy i{animation:none}}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.tabs button{border:0;background:transparent;padding:8px 12px;font-weight:600;font-size:13.5px;color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--pred)}
+.cnt{font-family:var(--mono);font-size:11.5px;background:var(--grid);color:var(--ink2);padding:1px 7px;border-radius:999px;margin-left:4px}
+.cnt:empty{display:none}
+@media (max-width:560px){.kpi{padding:12px}.kpi .big{font-size:26px}.kpi-h{flex-wrap:wrap}.kpi .foot{flex-direction:column;gap:0}}
+.klist{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px}
+.kc{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--panel2);display:grid;gap:8px;align-content:start}
+.kc.ok{border-color:var(--ok);background:var(--ok-bg)} .kc.nee{opacity:.5}
+.kc h3{margin:0;font-size:14px;font-weight:600}
+.kc .when{font-family:var(--mono);font-size:12.5px;color:var(--ink2)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12.5px;margin:0}
+.kv dt{color:var(--ink3)} .kv dd{margin:0}
+.dots{letter-spacing:2px;color:var(--pred);font-size:13px}
+.dots b{color:var(--line);font-weight:400}
+.acts{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.acts button{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:5px 10px;font-size:12.5px;cursor:pointer}
+.acts button.pri{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.acts select{width:auto;padding:4px 8px;font-size:12.5px}
+.why{font-size:12.5px;color:var(--ink);background:var(--panel);border:1px dashed var(--line);border-radius:8px;padding:8px 10px}
+.why .ai{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--event);display:block;margin-bottom:2px}
+.hint{font-size:12.5px;color:var(--ink3);grid-column:1/-1;margin:0}
+footer{font-size:12px;color:var(--ink3);text-align:center;padding-top:4px}
+
+/* v4: naam, stationkiezer, overzicht */
+.tagline{margin:4px 0 0;color:var(--band-ink2);font-size:14px;max-width:62ch}
+.tagline b{color:var(--band-ink);font-weight:600}
+.ai-chip{display:block;font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--band-ink2)}
+.ai-chip svg{color:var(--pred);display:inline-block;vertical-align:-1px;margin-right:6px}
+.pick-wrap{position:relative;min-width:0;flex:1 1 320px;max-width:520px}
+.pick-btn{width:100%;display:flex;align-items:center;gap:12px;background:var(--band-chip);border:1px solid var(--band-line);border-radius:12px;padding:9px 12px;color:var(--band-ink);cursor:pointer;text-align:left}
+.pick-btn:hover{border-color:var(--band-ink2)}
+.pick-btn .pn-name{display:block;font-weight:600;font-size:15.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pick-btn .pn-sub{display:block;font-size:12px;color:var(--band-ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pick-btn .chev{margin-left:auto;color:var(--band-ink2);flex:none}
+.sdot{width:9px;height:9px;border-radius:50%;background:var(--ok);flex:none}
+.sdot.let{background:var(--warn)} .sdot.krap{background:var(--krap)}
+.picker{position:absolute;z-index:20;top:calc(100% + 6px);left:0;width:min(440px,calc(100vw - 32px));background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.25);display:grid;grid-template-rows:auto 1fr auto;max-height:min(70vh,560px);overflow:hidden}
+.picker .zoek{padding:10px;border-bottom:1px solid var(--line)}
+.picker .zoek input{width:100%;font:inherit;font-size:14.5px;border:1px solid var(--line);border-radius:9px;padding:9px 11px;background:var(--panel2);color:var(--ink)}
+.plist{overflow-y:auto;padding:4px 6px 8px}
+.pgroup{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);font-weight:600;padding:10px 8px 4px}
+.pitem{display:grid;grid-template-columns:24px 1fr auto auto;gap:8px;align-items:center;padding:7px 8px;border-radius:9px;cursor:pointer}
+.pitem:hover,.pitem.act{background:var(--panel2)}
+.pitem.sel{background:var(--grid)}
+.pitem .nm{font-size:14px;line-height:1.25}
+.pitem .nm small{display:block;color:var(--ink3);font-size:12px}
+.pitem .cnt2{font-family:var(--mono);font-size:13px;color:var(--ink2)}
+.star{border:0;background:transparent;cursor:pointer;color:var(--line);padding:2px;display:grid;place-items:center}
+.star[aria-pressed="true"]{color:var(--warn)}
+.star:hover{color:var(--warn)}
+.pfoot{font-size:12px;color:var(--ink3);padding:8px 12px;border-top:1px solid var(--line)}
+.leeg{padding:16px 10px;color:var(--ink3);font-size:13.5px}
+
+.ov-ctrl{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:12px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips button{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer;color:var(--ink2)}
+.chips button[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.ov-right{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--ink2)}
+.ov-right select{width:auto;padding:6px 8px;font-size:13px}
+.ov-right label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.ov-right input[type=checkbox]{accent-color:var(--pred);width:15px;height:15px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.tile{border:1px solid var(--line);border-radius:12px;background:var(--panel2);padding:11px 12px;display:grid;gap:6px;cursor:pointer;text-align:left;color:var(--ink);position:relative}
+.tile:hover{border-color:var(--ink3)}
+.tile.sel{border-color:var(--pred);box-shadow:0 0 0 1px var(--pred) inset}
+.tile .th{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.tile .tn{font-weight:600;font-size:13.5px;line-height:1.25}
+.tile .tn small{display:block;font-weight:400;color:var(--ink3);font-size:11.5px}
+.tile .tv{font-family:var(--mono);font-size:22px;font-weight:500;line-height:1}
+.tile .tv small{font-size:12px;color:var(--ink3);margin-left:3px}
+.tile .tf{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:12px;color:var(--ink2)}
+.tile .tfav{position:absolute;right:8px;bottom:8px}
+.elders{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12.5px;color:var(--ink2);padding:2px 2px 0}
+.elders button{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:3px 9px;font-size:12px;cursor:pointer;color:var(--ink)}
+.how{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+@media (max-width:700px){.how{grid-template-columns:1fr}}
+.how div{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--ink2)}
+.how b{display:block;color:var(--ink);font-size:13.5px;margin-bottom:2px}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="top-row">
+      <div class="brand">
+        <span class="ai-chip"><svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0l1.7 4.3L14 6 9.7 7.7 8 12 6.3 7.7 2 6l4.3-1.7zM13 10l.8 1.9 1.9.8-1.9.8L13 15.4l-.8-1.9-1.9-.8 1.9-.8z"/></svg>AI-voorspelling · <span id="telling"></span></span>
+        <h1>OV-Fietsvoorraad voorspeller</h1>
+        <p class="tagline">Voorspelt met <b>AI en slimme algoritmes</b> hoeveel OV-fietsen er straks staan, op basis van metingen elke 15 minuten, het weer en evenementen in de buurt.</p>
+      </div>
+      <div class="top-actions">
+        <nav class="nav" aria-label="Onderdelen"><a href="#overzicht">Alle stations</a><a href="#scanner">Scanner</a><a href="#model">Hoe werkt het?</a></nav>
+        <a class="need-btn" href="#fietsmoment">+ Ik heb een fiets nodig</a>
+      </div>
+    </div>
+    <div class="top-row" style="align-items:center">
+      <div class="pick-wrap">
+        <button class="pick-btn" id="pick-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="picker">
+          <i class="sdot" id="pick-dot"></i><span style="min-width:0"><span class="pn-name" id="pick-naam"></span><span class="pn-sub" id="pick-sub"></span></span>
+          <svg class="chev" width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="m3 5 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+        </button>
+        <div class="picker" id="picker" hidden>
+          <div class="zoek"><input type="text" id="pick-zoek" placeholder="Zoek een station, bijv. Leiden of Utrecht" aria-label="Zoek een station" autocomplete="off"></div>
+          <div class="plist" id="plist" role="listbox" aria-label="Stallingen"></div>
+          <div class="pfoot">Tik op de ster om een station aan je favorieten toe te voegen · <kbd>/</kbd> opent de zoeker</div>
+        </div>
+      </div>
+      <div class="when">
+        <button class="ib" id="prev" type="button" aria-label="Een uur terug"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M9 2 4 7l5 5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button>
+        <span class="clock" id="clock" aria-live="polite"></span>
+        <button class="ib" id="next" type="button" aria-label="Een uur vooruit"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="m5 2 5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></button>
+        <button class="ib" id="play" type="button" aria-pressed="false" aria-label="Afspelen"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" id="playico"><path d="M4 2.5v9l7-4.5z" fill="currentColor"/></svg></button>
+      </div>
+    </div>
+    <div class="scrub">
+      <div class="track"><div class="ticks" id="ticks"></div><input type="range" id="slider" min="0" step="1" aria-label="Moment"></div>
+      <div class="days" id="days"></div>
+    </div>
+    <div class="presets" id="presets"><span class="lbl">Bekijk:</span><span class="kbd"><kbd>←</kbd> <kbd>→</kbd> kwartier · <kbd>shift</kbd> uur · <kbd>spatie</kbd> afspelen</span></div>
+  </header>
+
+  <section class="kpis" id="kpis" aria-label="Voorspelling"></section>
+
+  <div class="grid2">
+    <section class="card">
+      <div class="card-h"><h2 id="ctitle"></h2><span class="meta">12 uur terug · 3 uur vooruit</span></div>
+      <div class="chartbox"><svg id="chart" viewBox="0 0 720 368" role="img" aria-label="Voorraad, voorspelling en weer"></svg><div class="tip" id="tip" hidden></div></div>
+      <div class="legend">
+        <span><i class="sw" style="border-color:var(--actual)"></i>gemeten</span>
+        <span><i class="sw" style="border-color:var(--actual-soft)"></i>daarna echt gebeurd</span>
+        <span><i class="sw" style="border-color:var(--pred)"></i>voorspelling</span>
+        <span><i class="sw" style="border-color:var(--nomeld);border-top-style:dashed"></i>zonder evenement</span>
+        <span><i class="swb"></i>evenement</span>
+        <span><i class="swr"></i>regen</span>
+      </div>
+    </section>
+    <aside class="card" aria-label="Meldingen">
+      <div class="card-h"><h2>Meldingen</h2><span class="meta" id="mcount"></span></div>
+      <div class="feed" id="feed"></div>
+    </aside>
+  </div>
+
+  <section class="card" id="overzicht">
+    <div class="card-h"><h2>Alle stations</h2><span class="meta" id="ov-meta"></span></div>
+    <div class="ov-ctrl">
+      <div class="chips" id="ov-groep" role="group" aria-label="Welke stations"></div>
+      <div class="ov-right">
+        <label>Sorteer <select id="ov-sort" aria-label="Sorteren"><option value="krap">meeste kans op krap</option><option value="naam">naam</option><option value="vol">meeste fietsen</option></select></label>
+        <label><input type="checkbox" id="ov-krap">alleen weinig of krap</label>
+      </div>
+    </div>
+    <div class="tiles" id="tiles"></div>
+  </section>
+
+  <section class="card" id="fietsmoment">
+    <div class="card-h"><h2>Mijn fietsmomenten</h2><span class="meta">geef aan wanneer je een fiets nodig hebt</span></div>
+    <div class="need">
+      <form class="form" id="needform">
+        <div class="fields">
+          <div class="f"><label for="n-loc">Stalling</label><select id="n-loc"></select></div>
+          <div class="f"><label for="n-day">Dag</label><select id="n-day"></select></div>
+          <div class="f"><label for="n-time">Tijd</label><select id="n-time"></select></div>
+        </div>
+        <div class="opts"><span class="fl">Stuur me een pushmelding</span>
+          <label class="opt"><input type="checkbox" id="o-vooraf" checked><span>Twee uur van tevoren<small>verwachte voorraad en kans op krapte</small></span></label>
+          <label class="opt"><input type="checkbox" id="o-update" checked><span>Als de verwachting verandert<small>bijvoorbeeld van genoeg naar weinig</small></span></label>
+          <label class="opt"><input type="checkbox" id="o-krap" checked><span>Als het krap wordt<small>met een alternatief in de buurt</small></span></label>
+          <label class="opt"><input type="checkbox" id="o-event" checked><span>Bij evenementen rond mijn tijd<small>tot 6 uur van tevoren</small></span></label>
+          <label class="opt"><input type="checkbox" id="o-weer" checked><span>Bij regen rond mijn tijd<small>dan weet je dat je een jas nodig hebt</small></span></label>
+          <label class="opt"><input type="checkbox" id="o-herhaal"><span>Elke week herhalen<small>voor een vaste reisdag</small></span></label>
+        </div>
+        <button class="go" type="submit">Fietsmoment opslaan</button>
+        <div class="saved" id="saved"></div>
+        <details class="echt">
+          <summary>Zo krijg je deze meldingen echt op je telefoon</summary>
+          <ol>
+            <li>Installeer de gratis app <b>ntfy</b> (iPhone of Android) en abonneer je op een lange, zelfbedachte naam, bijvoorbeeld <span class="mono">ovfiets-<span id="rnd"></span></span>.</li>
+            <li>Zet die naam als <span class="mono">NTFY_TOPIC</span>: als GitHub-secret, of op je Mac en test met <span class="mono">python meldingen.py --test</span>.</li>
+            <li>Zet deze regel in <span class="mono">fietsmomenten.csv</span> in je map OVFiets:
+              <div class="codeline"><code id="csvline"></code><button type="button" id="copy">Kopieer</button></div></li>
+          </ol>
+        </details>
+      </form>
+      <div class="phone" aria-label="Voorbeeld van pushmeldingen">
+        <div class="ptime" id="p-time"></div><div class="pdate" id="p-date"></div>
+        <div id="pns" style="display:grid;gap:8px"></div>
+        <div class="pnote">Zo zouden je meldingen die dag zijn binnengekomen</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="scanner">
+    <div class="card-h"><h2>Evenementen-scanner</h2><span class="meta" id="scanmeta">elke ochtend automatisch, voor alle stations</span></div>
+    <div class="scan-top">
+      <div class="srcs">
+        <span class="src" id="src-tm"><i></i>Ticketmaster</span>
+        <span class="src" id="src-vg"><i></i>Vergunningen Gemeenteblad</span>
+        <span class="src" id="src-ag"><i></i>Agenda's (gelezen door AI)</span>
+      </div>
+      <button class="go" type="button" id="scanbtn">Scan nu</button>
+    </div>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tab-k" aria-selected="true" aria-controls="pane-k">Vondsten <span class="cnt" id="cnt-k"></span></button>
+      <button type="button" role="tab" id="tab-d" aria-selected="false" aria-controls="pane-d">Onverklaarde dips <span class="cnt" id="cnt-d"></span></button>
+    </div>
+    <div id="pane-k" class="klist" role="tabpanel"></div>
+    <div id="pane-d" class="klist" role="tabpanel" hidden></div>
+  </section>
+
+  <div class="grid3">
+    <section class="card" id="model">
+      <div class="card-h"><h2>Hoe werkt de voorspelling?</h2><span class="meta">testdagen 17–20 sep, niet gezien bij het trainen</span></div>
+      <div class="how">
+        <div><b>1 · Meten</b>Elke 15 minuten halen we bij de NS op hoeveel OV-fietsen er per stalling staan.</div>
+        <div><b>2 · Leren</b>Een machine-learningmodel (gradient boosting) leert per stalling hoe de voorraad verloopt: spits, weekdag, vakantie, weer en evenementen.</div>
+        <div><b>3 · Vooruitkijken</b>Het voorspelt het aantal fietsen en de kans op krapte. AI leest agenda's en vergunningen om evenementen te vinden.</div>
+      </div>
+      <div class="tw"><table>
+        <thead><tr><th>Vooruit</th><th>Model</th><th>Blijft gelijk</th><th>Vorige week</th></tr></thead>
+        <tbody id="score"></tbody>
+      </table></div>
+      <p class="note">Gemiddeld aantal fietsen dat de voorspelling ernaast zit, over alle stallingen (lager is beter). "Blijft gelijk" en "vorige week" zijn de simpele gokken die het model moet verslaan.</p>
+      <div class="stat" id="krapstat"></div>
+    </section>
+    <section class="card">
+      <div class="card-h"><h2>Op de kalender</h2><span class="meta">komende maanden</span></div>
+      <div class="cal" id="cal"></div>
+      <p class="note">Vakanties en carnaval kloppen (adviesdata per regio); wat je via de scanner toevoegt zijn in deze demo voorbeelden. Hoe sterk iets de voorraad raakt, leert het model uit echte metingen.</p>
+    </section>
+  </div>
+  <footer>OV-Fietsvoorraad voorspeller · demo op gesimuleerde metingen (17 aug – 20 sep 2026) · Into the Woods is echt, de tijden en overige evenementen zijn verzonnen · code in je map OVFiets</footer>
+</div>
+
+<script>
+const DATA=__DATA__;
+const H=DATA.horizons, DR=DATA.drempel, MIN=6e4, HR=36e5;
+const dagen=["zo","ma","di","wo","do","vr","za"], mnd=["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
+const T=s=>new Date(s.replace(" ","T")).getTime();
+const pad=n=>String(n).padStart(2,"0");
+const hm=t=>{const d=new Date(t);return pad(d.getHours())+":"+pad(d.getMinutes())};
+const dag=t=>{const d=new Date(t);return `${dagen[d.getDay()]} ${d.getDate()} ${mnd[d.getMonth()]}`};
+const kort=n=>n.replace("'s-Hertogenbosch","Den Bosch");
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pct=k=>Math.round(k*100)+"%";
+const uurVan=t=>{const d=new Date(t);d.setMinutes(0,0,0);return d.getTime()};
+const ICON={
+ ev:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 12.5V3.5l7-1.5v9"/><circle cx="4.5" cy="12.5" r="1.8"/><circle cx="11.5" cy="11" r="1.8"/></svg>',
+ krap:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 2 14.5 13.5h-13z"/><path d="M8 6.5v3.2M8 11.6v.2"/></svg>',
+ cal:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/></svg>',
+ rn:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4.5 10a3 3 0 0 1 .4-6 4 4 0 0 1 7.4 1.2A2.5 2.5 0 0 1 12 10z"/><path d="M5.5 12.5 5 14M8.5 12.5 8 14M11.5 12.5 11 14"/></svg>',
+ bike:'<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="3.8" cy="11" r="2.6"/><circle cx="12.2" cy="11" r="2.6"/><path d="M3.8 11 6.5 5.5h4.2L12.2 11M6.5 5.5 8.6 11M9.5 3.5h2"/></svg>',
+ star:'<svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l1.9 4.2 4.6.5-3.4 3.1 1 4.5L8 11.5l-4.1 2.3 1-4.5L1.5 6.2l4.6-.5z" fill="currentColor"/></svg>'};
+
+// ---------- data ----------
+const LOCS=DATA.locs, byCode=Object.fromEntries(LOCS.map(l=>[l.code,l]));
+const keys=Object.keys(LOCS[0].pred).sort();
+const series=Object.fromEntries(LOCS.map(l=>[l.code,new Map(l.serie.map(([t,v])=>[T(t),v]))]));
+const EVENTS=DATA.events.map(e=>({...e,s:T(e.start),e:T(e.eind)}));
+const WEER=Object.fromEntries(Object.entries(DATA.weer).map(([g,rows])=>[g,new Map(rows.map(([t,r,c])=>[T(t),{r,c}]))]));
+const weerOp=(g,t)=>WEER[g]?.get(uurVan(t));
+const k0=T(keys[0]),kN=T(keys[keys.length-1]);
+const evFor=code=>EVENTS.filter(e=>e.stations.split(";").includes(byCode[code].station));
+const naamVan=l=>kort(l.naam);
+const subVan=l=>l.gebied===l.naam?(l.groep==="Grote stations"?"groot station":"extra station"):l.gebied;
+const GROEPEN_LIJST=[...new Set(LOCS.map(l=>l.groep))];  // in volgorde van stations.csv
+$("telling").textContent=`${new Set(LOCS.map(l=>l.gebied)).size} gebieden · ${LOCS.length} stallingen`;
+let fav=[];try{fav=JSON.parse(localStorage.getItem("ovfiets-fav")||"[]")}catch(e){}
+const bewaarFav=()=>{try{localStorage.setItem("ovfiets-fav",JSON.stringify(fav))}catch(e){}};
+let startCode="AMF001";try{const s=localStorage.getItem("ovfiets-sel");if(s&&byCode[s])startCode=s}catch(e){}
+let loc=byCode[startCode], idx=keys.indexOf("2026-09-18T11:00");
+
+// status: gelijk aan meldingen.py
+const weinig=cap=>Math.max(8,.05*(cap||0));  // schaalt mee met de stalling, zoals in meldingen.py
+function statusNu(v,cap){return v<DR?["krap","krap"]:v<weinig(cap)?["let","weinig"]:["ok","genoeg"]}
+function statusPK(v,k,cap){return (k>=.5||v<DR)?["krap","krap"]:(k>=.2||v<weinig(cap))?["let","weinig"]:["ok","genoeg"]}
+const kleur=c=>c==="krap"?"var(--krap)":c==="let"?"var(--warn)":"var(--actual)";
+function stand(l,key){ // samenvatting van een stalling op dit moment
+  const now=T(key),n=series[l.code].get(now),k=l.kans[key],p=l.pred[key],mk=Math.max(...k);
+  const [cls]=n<DR?["krap"]:statusPK(Math.min(...p),mk,l.cap);return {n,mk,p,k,cls};
+}
+function kies(l){loc=l;try{localStorage.setItem("ovfiets-sel",l.code)}catch(e){}render()}
+
+// ---------- stationkiezer ----------
+const pb=$("pick-btn"),pk=$("picker"),pz=$("pick-zoek");let act=0,zichtbaar=[];
+function openPicker(){pk.hidden=false;pb.setAttribute("aria-expanded","true");pz.value="";act=0;renderPicker();setTimeout(()=>pz.focus(),0)}
+function sluitPicker(){pk.hidden=true;pb.setAttribute("aria-expanded","false")}
+pb.onclick=()=>pk.hidden?openPicker():sluitPicker();
+document.addEventListener("pointerdown",e=>{if(!pk.hidden&&!e.target.closest(".pick-wrap"))sluitPicker()});
+pz.oninput=()=>{act=0;renderPicker()};
+pz.onkeydown=e=>{
+  if(e.key==="ArrowDown"){e.preventDefault();act=Math.min(zichtbaar.length-1,act+1);renderPicker()}
+  else if(e.key==="ArrowUp"){e.preventDefault();act=Math.max(0,act-1);renderPicker()}
+  else if(e.key==="Enter"){e.preventDefault();if(zichtbaar[act]){kies(zichtbaar[act]);sluitPicker();pb.focus()}}
+  else if(e.key==="Escape"){sluitPicker();pb.focus()}};
+function renderPicker(){
+  const q=pz.value.trim().toLowerCase(),key=keys[idx];
+  const match=l=>!q||[l.naam,kort(l.naam),l.gebied,l.station].some(s=>s.toLowerCase().includes(q));
+  const score=l=>{const velden=[naamVan(l),l.naam,l.gebied].map(x=>x.toLowerCase());
+    if(l.station.toLowerCase()===q||velden.some(v=>v.startsWith(q)))return 0;
+    if(velden.some(v=>v.split(/[^a-z0-9]+/).some(w=>w.startsWith(q))))return 1;return 2};
+  const groepen=q?[["Resultaten",LOCS.filter(match).sort((a,b)=>score(a)-score(b)||a.orde-b.orde)]]
+    :[["Favorieten",LOCS.filter(l=>fav.includes(l.code))],...GROEPEN_LIJST.map(g=>[g,LOCS.filter(l=>l.groep===g)])];
+  zichtbaar=[];let html="";
+  groepen.forEach(([g,ls])=>{const f=ls.filter(match);if(!f.length)return;html+=`<div class="pgroup">${g}</div>`;
+    f.forEach(l=>{const i=zichtbaar.length;zichtbaar.push(l);const s=stand(l,key);
+      html+=`<div class="pitem ${i===act?"act":""} ${l===loc?"sel":""}" role="option" aria-selected="${l===loc}" data-i="${i}">
+        <button type="button" class="star" data-fav="${l.code}" aria-pressed="${fav.includes(l.code)}" aria-label="Favoriet: ${esc(naamVan(l))}">${ICON.star}</button>
+        <span class="nm">${esc(naamVan(l))}<small>${esc(subVan(l))}</small></span><span class="cnt2">${s.n}</span><i class="sdot ${s.cls==="ok"?"":s.cls}"></i></div>`})});
+  $("plist").innerHTML=html||`<div class="leeg">Geen station gevonden voor "${esc(pz.value)}". In deze demo staan de 10 grootste stations, Regio Den Bosch, Tilburg en Amersfoort.</div>`;
+  $("plist").querySelectorAll(".pitem").forEach(el=>el.onclick=e=>{if(e.target.closest(".star"))return;kies(zichtbaar[+el.dataset.i]);sluitPicker();pb.focus()});
+  $("plist").querySelectorAll(".star").forEach(b=>b.onclick=()=>{toggleFav(b.dataset.fav);renderPicker()});
+  const a=$("plist").querySelector(".pitem.act");a&&a.scrollIntoView({block:"nearest"});
+}
+function toggleFav(c){fav=fav.includes(c)?fav.filter(x=>x!==c):[...fav,c];bewaarFav();renderOverzicht();renderFeed(T(keys[idx]))}
+
+// ---------- kop: schuifbalk, afspelen ----------
+const sl=$("slider");sl.max=keys.length-1;sl.oninput=()=>{idx=+sl.value;render()};
+const stap=n=>{idx=Math.max(0,Math.min(keys.length-1,idx+n));render()};
+$("prev").onclick=()=>stap(-4);$("next").onclick=()=>stap(4);
+for(let d=0;d<4;d++){const s=document.createElement("span");s.textContent=dag(k0+d*24*HR);$("days").appendChild(s)}
+const pos=t=>Math.max(0,Math.min(100,(t-k0)/(kN-k0)*100));
+function renderTicks(){ // evenementen en regen van de gekozen stalling
+  let h="";evFor(loc.code).forEach(e=>{h+=`<i class="ev" style="left:${pos(e.s)}%;width:${Math.max(.6,pos(e.e)-pos(e.s))}%" title="${esc(e.naam.replace(" (fictief)",""))}"></i>`});
+  (DATA.weer[loc.gebied]||[]).filter(([,r])=>r>=.5).forEach(([t])=>{const s=T(t);if(s<k0||s>kN)return;h+=`<i class="rn" style="left:${pos(s)}%;width:${HR/(kN-k0)*100}%"></i>`});
+  $("ticks").innerHTML=h;
+}
+[["Into the Woods","AMF001","2026-09-18T11:00"],["Ochtendspits Leiden","LEDN001","2026-09-17T07:00"],["Congres RAI","ASDZ001","2026-09-17T06:30"],["Regen in de Randstad","UT001","2026-09-18T06:00"],["Beurs Jaarbeurs","UT001","2026-09-19T08:00"],["Wedstrijd De Vliert","HT001","2026-09-18T18:00"]]
+ .forEach(([t,c,k])=>{const b=document.createElement("button");b.type="button";b.textContent=t;b.onclick=()=>{stopPlay();idx=keys.indexOf(k);kies(byCode[c])};$("presets").insertBefore(b,$("presets").querySelector(".kbd"))});
+let timer=null;
+function stopPlay(){if(timer){clearInterval(timer);timer=null}$("play").setAttribute("aria-pressed","false");$("play").setAttribute("aria-label","Afspelen");$("playico").innerHTML='<path d="M4 2.5v9l7-4.5z" fill="currentColor"/>'}
+$("play").onclick=()=>{if(timer){stopPlay();return}
+  if(idx>=keys.length-1)idx=0;$("play").setAttribute("aria-pressed","true");$("play").setAttribute("aria-label","Pauzeren");$("playico").innerHTML='<path d="M4 2.5h2v9H4zM8 2.5h2v9H8z" fill="currentColor"/>';
+  timer=setInterval(()=>{if(idx>=keys.length-1){stopPlay();return}stap(1)},220)};
+document.addEventListener("keydown",e=>{
+  if(e.key==="/"&&!e.target.closest("input,select,textarea")){e.preventDefault();openPicker();return}
+  if(e.target.closest("input,select,textarea")||e.metaKey||e.ctrlKey||e.altKey)return;
+  if(e.key==="ArrowRight"){e.preventDefault();stopPlay();stap(e.shiftKey?4:1)}
+  else if(e.key==="ArrowLeft"){e.preventDefault();stopPlay();stap(e.shiftKey?-4:-1)}
+  else if(e.key===" "&&!e.target.closest("button,summary,a,[tabindex]")){e.preventDefault();$("play").click()}});
+
+function spark(code,now,w=90,h=24){
+  const m=series[code],pts=[];for(let t=now-12*HR;t<=now;t+=15*MIN)if(m.has(t))pts.push(m.get(t));
+  const cap=byCode[code].cap;
+  const d=pts.map((v,i)=>(i?"L":"M")+(i/(pts.length-1)*w).toFixed(1)+" "+(h-2-v/cap*(h-4)).toFixed(1)).join("");
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block" aria-hidden="true"><path d="${d}" fill="none" stroke="var(--actual)" stroke-width="1.5"/></svg>`;
+}
+
+// ---------- hoofdweergave ----------
+function render(){
+  const key=keys[idx],now=T(key);sl.value=idx;
+  $("clock").textContent=dag(now)+" · "+hm(now);
+  const st=stand(loc,key);
+  $("pick-naam").textContent=naamVan(loc);$("pick-sub").textContent=subVan(loc)+" · "+st.n+" fietsen nu";$("pick-dot").className="sdot "+(st.cls==="ok"?"":st.cls);
+  if(!pk.hidden)renderPicker();
+  renderTicks();
+  const m=series[loc.code],nu=m.get(now),p=loc.pred[key],k=loc.kans[key],p0=loc.pred0[key];
+  const tiles=[`<div class="kpi"><div class="kpi-h"><span>Nu</span>${(([c,t])=>`<em class="pill ${c}">${t}</em>`)(statusNu(nu,loc.cap))}</div>
+    <div class="big">${nu}<small>/ ${loc.cap}</small></div><div class="bar"><i style="width:${Math.min(100,nu/loc.cap*100)}%;background:${kleur(statusNu(nu,loc.cap)[0])}"></i></div>
+    <div class="kans"><span>gemeten om ${hm(now)}</span></div><div class="foot"><span>${esc(naamVan(loc))}</span></div></div>`]
+    .concat(H.map((h,i)=>{const v=Math.round(p[i]),[c,t]=statusPK(v,k[i],loc.cap),real=m.get(now+h*MIN);
+    return `<div class="kpi"><div class="kpi-h"><span>Over ${h} min</span><em class="pill ${c}">${t}</em></div>
+    <div class="big">${v}<small>/ ${loc.cap}</small></div><div class="bar"><i style="width:${Math.min(100,v/loc.cap*100)}%;background:${kleur(c)}"></i></div>
+    <div class="kans"><span>kans op krap</span><b style="color:${k[i]>=.2?kleur(c):"inherit"}">${pct(k[i])}</b></div>
+    <div class="foot"><span>voorspeld voor ${hm(now+h*MIN)}</span><span>echt: <span class="mono">${real??"–"}</span></span></div></div>`}));
+  $("kpis").innerHTML=tiles.join("");
+  $("ctitle").textContent=naamVan(loc)+(loc.gebied!==loc.naam?" · "+loc.gebied:"");
+  drawChart(now,nu,p,p0);renderFeed(now);renderOverzicht();
+}
+
+// meldingen: de gekozen stalling, zijn buren in hetzelfde gebied en je favorieten; de rest samengevat
+function renderFeed(now){
+  const items=[],key=keys[idx];
+  const dichtbij=l=>l===loc||l.gebied===loc.gebied||fav.includes(l.code);
+  const elders=[];
+  LOCS.forEach(l=>{const nuV=series[l.code].get(now),kk=l.kans[key],i=kk.findIndex(v=>v>=.5);
+    if(nuV>=DR&&i<0)return;
+    if(!dichtbij(l)){elders.push(l);return}
+    const own=l===loc;
+    if(nuV<DR)items.push({kind:"krap",own,rank:0,title:`${naamVan(l)} is nu krap`,sub:`${nuV} fietsen beschikbaar`,tags:[["krap","nu"]]});
+    else items.push({kind:"krap",own,rank:1,title:`Krap verwacht bij ${naamVan(l)}`,sub:`Rond ${hm(now+H[i]*MIN)} ${pct(kk[i])} kans op minder dan ${DR} fietsen`,tags:[["krap","over "+H[i]+" min"]]});});
+  EVENTS.filter(e=>e.e>=now&&e.s<=now+8*HR).forEach(e=>{
+    const codes=LOCS.filter(l=>e.stations.split(";").includes(l.station));if(!codes.some(dichtbij))return;
+    const own=codes.includes(loc),bezig=e.s<=now;let eff="";
+    if(own){const d=Math.round(loc.pred[key][2]-loc.pred0[key][2]);if(Math.abs(d)>=2)eff=`<div class="eff">Effect op de voorspelling over 2 uur: <b>${d>0?"+":""}${d}</b> fietsen</div>`}
+    items.push({kind:"ev",own,rank:bezig?.5:2,title:e.naam.replace(" (fictief)",""),sub:`${dag(e.s)} · ${hm(e.s)}–${hm(e.e)} · ${[...new Set(codes.map(l=>kort(l.gebied)))].join(", ")}`,
+      tags:[["ev",bezig?"bezig":"begint over "+duur(e.s-now)],["ev","impact "+["","laag","middel","hoog"][e.impact]]],eff});});
+  const uren=[];for(let t=uurVan(now);t<=now+3*HR;t+=HR){const w=weerOp(loc.gebied,t);if(w)uren.push([t,w])}
+  const nat=uren.filter(([,w])=>w.r>=.5);
+  if(nat.length){const a=nat[0][0];let b=a,mm=0;while(weerOp(loc.gebied,b)&&weerOp(loc.gebied,b).r>=.5&&b<a+12*HR){mm=Math.max(mm,weerOp(loc.gebied,b).r);b+=HR}
+    items.push({kind:"rn",own:true,rank:1.5,title:a<=now?"Het regent":`Regen verwacht vanaf ${hm(a)}`,sub:`tot ongeveer ${hm(b)} · tot ${mm.toFixed(1).replace(".",",")} mm per uur`,tags:[["rn","minder fietsers"],["mute",kort(loc.gebied)]],
+      eff:`<div class="eff">Bij regen blijven er meer fietsen staan; het model rekent dit mee.</div>`})}
+  else if(uren.length&&uren.every(([,w])=>w.c>=21)){items.push({kind:"rn",own:true,rank:3,title:`Warm en droog (${Math.round(uren[0][1].c)}°)`,sub:"de komende uren",tags:[["rn","drukker op de fiets"]]})}
+  items.sort((a,b)=>(b.own-a.own)||(a.rank-b.rank));
+  $("mcount").textContent=items.length?items.length+(items.length===1?" melding":" meldingen"):"";
+  let h=items.length?items.map(it=>`<div class="mel ${it.own?"":"dim"}"><div class="ico ${it.kind}">${ICON[it.kind]}</div><div><h3>${esc(it.title)}</h3><div class="sub">${esc(it.sub)}</div>
+    <div class="tags">${it.tags.map(([c,t])=>`<span class="pill ${c}">${esc(t)}</span>`).join("")}${it.own?"":`<span class="pill mute">${fav.includes(LOCS.find(l=>it.title.includes(naamVan(l)))?.code)?"favoriet":"zelfde gebied"}</span>`}</div>${it.eff||""}</div></div>`).join("")
+    :`<div class="empty">Geen evenementen, regen of verwachte krapte bij ${esc(naamVan(loc))} in de komende uren.</div>`;
+  if(elders.length)h+=`<div class="elders"><span>Elders krap:</span>${elders.slice(0,6).map(l=>`<button type="button" data-go="${l.code}">${esc(naamVan(l))}</button>`).join("")}${elders.length>6?`<span>+${elders.length-6}</span>`:""}</div>`;
+  $("feed").innerHTML=h;
+  $("feed").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>kies(byCode[b.dataset.go]));
+}
+const duur=ms=>{const m=Math.round(ms/MIN);return m<60?m+" min":Math.floor(m/60)+" u"+(m%60?" "+m%60+" min":"")};
+
+// ---------- overzicht alle stations ----------
+let ovGroep="Alle";
+const GROEPEN=["Alle",...["Grote stations",...GROEPEN_LIJST.filter(g=>g!=="Grote stations"&&g!=="Overig")].filter(g=>GROEPEN_LIJST.includes(g)),"Favorieten"];
+$("ov-groep").innerHTML=GROEPEN.map(g=>`<button type="button" data-g="${g}" aria-pressed="${g===ovGroep}">${g}</button>`).join("");
+$("ov-groep").querySelectorAll("button").forEach(b=>b.onclick=()=>{ovGroep=b.dataset.g;$("ov-groep").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));renderOverzicht()});
+$("ov-sort").onchange=renderOverzicht;$("ov-krap").onchange=renderOverzicht;
+function renderOverzicht(){
+  const key=keys[idx],now=T(key);
+  let ls=LOCS.filter(l=>ovGroep==="Alle"||(ovGroep==="Favorieten"?fav.includes(l.code):l.groep===ovGroep)).map(l=>({l,...stand(l,key)}));
+  if($("ov-krap").checked)ls=ls.filter(x=>x.cls!=="ok");
+  const s=$("ov-sort").value;
+  ls.sort(s==="naam"?(a,b)=>naamVan(a.l).localeCompare(naamVan(b.l)):s==="vol"?(a,b)=>b.n-a.n:(a,b)=>(b.mk-a.mk)||(a.n/a.l.cap-b.n/b.l.cap));
+  const nk=LOCS.filter(l=>stand(l,key).cls==="krap").length,nw=LOCS.filter(l=>stand(l,key).cls==="let").length;
+  $("ov-meta").textContent=`${nk} krap · ${nw} weinig · ${LOCS.length-nk-nw} genoeg`;
+  $("tiles").innerHTML=ls.length?ls.map(({l,n,mk,p,cls})=>{const lab=cls==="krap"?(n<DR?"krap":"krap verwacht"):cls==="let"?"weinig":"genoeg";
+    return `<div class="tile ${l===loc?"sel":""}" role="button" tabindex="0" data-c="${l.code}" aria-label="${esc(naamVan(l))}: ${n} fietsen, ${lab}">
+      <div class="th"><span class="tn">${esc(naamVan(l))}<small>${esc(subVan(l))}</small></span><span class="pill ${cls}">${lab}</span></div>
+      <div class="tv">${n}<small>/ ${l.cap}</small></div><div class="bar"><i style="width:${Math.min(100,n/l.cap*100)}%;background:${kleur(cls)}"></i></div>
+      <div class="tf"><span>+2 u: <b class="mono">${Math.round(p[2])}</b> · krap ${pct(mk)}</span></div>${spark(l.code,now,150,22)}
+      <button type="button" class="star tfav" data-fav="${l.code}" aria-pressed="${fav.includes(l.code)}" aria-label="Favoriet: ${esc(naamVan(l))}">${ICON.star}</button></div>`}).join("")
+    :`<p class="hint">${ovGroep==="Favorieten"?"Nog geen favorieten. Tik op de ster bij een station.":"Geen stations die hieraan voldoen."}</p>`;
+  $("tiles").querySelectorAll(".tile").forEach(el=>{const go=()=>{kies(byCode[el.dataset.c]);document.querySelector(".top").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"})};
+    el.onclick=e=>{if(e.target.closest(".star"))return;go()};el.onkeydown=e=>{if((e.key==="Enter"||e.key===" ")&&!e.target.closest(".star")){e.preventDefault();go()}}});
+  $("tiles").querySelectorAll(".star").forEach(b=>b.onclick=()=>toggleFav(b.dataset.fav));
+}
+
+function drawChart(now,nu,p,p0){
+  const W=720,Hh=330,m={l:42,r:18,t:26,b:30},x0=now-12*HR,x1=now+3*HR,ser=series[loc.code],G=loc.gebied;
+  const pts=[];for(let t=x0;t<=x1;t+=15*MIN)if(ser.has(t))pts.push([t,ser.get(t)]);
+  const ymax=Math.max(loc.cap,...pts.map(d=>d[1]))*1.06;
+  const X=t=>m.l+(t-x0)/(x1-x0)*(W-m.l-m.r),Y=v=>Hh-m.b-v/ymax*(Hh-m.t-m.b);
+  let s="";
+  evFor(loc.code).forEach(e=>{const a=Math.max(e.s,x0),b=Math.min(e.e,x1);if(b<=a)return;
+    s+=`<rect x="${X(a)}" y="${m.t}" width="${X(b)-X(a)}" height="${Hh-m.b-m.t}" fill="var(--event-bg)"/><line x1="${X(a)}" x2="${X(a)}" y1="${m.t}" y2="${Hh-m.b}" stroke="var(--event)" stroke-width="1"/>`;
+    const naam=esc(e.naam.replace(" (fictief)","")),lx=X(a)+5,rechts=lx>W-m.r-130;
+    s+=`<text x="${rechts?W-m.r-2:lx}" y="${m.t-8}" text-anchor="${rechts?"end":"start"}" font-size="11" font-weight="600" fill="var(--event)">${naam}</text>`});
+  s+=`<rect x="${m.l}" y="${Y(DR)}" width="${W-m.l-m.r}" height="${Y(0)-Y(DR)}" fill="var(--krapzone)"/>`;
+  const st=ymax>800?200:ymax>400?100:ymax>200?50:ymax>100?25:ymax>50?10:5;
+  for(let v=0;v<=ymax;v+=st)s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)"/><text x="${m.l-8}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="var(--ink3)" font-family="var(--mono)">${v}</text>`;
+  for(let t=uurVan(x0)+HR;t<=x1;t+=HR){if(new Date(t).getHours()%3)continue;s+=`<text x="${X(t)}" y="${Hh-9}" text-anchor="middle" font-size="11" fill="var(--ink3)" font-family="var(--mono)">${hm(t)}</text>`}
+  const lt=Hh+4,lh=26;
+  s+=`<text x="${m.l-8}" y="${lt+lh-4}" text-anchor="end" font-size="10" fill="var(--ink3)">regen</text><line x1="${m.l}" x2="${W-m.r}" y1="${lt+lh}" y2="${lt+lh}" stroke="var(--grid)"/>`;
+  for(let t=uurVan(x0);t<x1;t+=HR){const w=weerOp(G,t);if(!w)continue;const a=Math.max(X(t),m.l),b=Math.min(X(t+HR),W-m.r);
+    if(w.r>0){const hgt=Math.min(1,w.r/3)*(lh-4)+2;s+=`<rect x="${a+1}" y="${lt+lh-hgt}" width="${Math.max(0,b-a-2)}" height="${hgt}" rx="1.5" fill="${t+HR<=now?"var(--rain)":"var(--rain-soft)"}"/>`}
+    if(new Date(t).getHours()%3===0&&t>=x0)s+=`<text x="${X(t)}" y="${lt+9}" text-anchor="middle" font-size="10" fill="var(--ink3)" font-family="var(--mono)">${Math.round(w.c)}°</text>`}
+  s+=`<line x1="${X(now)}" x2="${X(now)}" y1="${m.t}" y2="${lt+lh}" stroke="var(--ink2)" stroke-dasharray="2 3"/><text x="${X(now)-6}" y="${m.t+12}" text-anchor="end" font-size="11" font-weight="600" fill="var(--ink2)">nu</text>`;
+  const path=a=>a.map(([t,v],i)=>(i?"L":"M")+X(t).toFixed(1)+" "+Y(v).toFixed(1)).join("");
+  s+=`<path d="${path(pts.filter(d=>d[0]>=now))}" fill="none" stroke="var(--actual-soft)" stroke-width="2" stroke-linejoin="round"/>`;
+  const past=pts.filter(d=>d[0]<=now);
+  s+=`<path d="${path(past)}L${X(now)} ${Y(0)}L${X(past[0][0])} ${Y(0)}Z" fill="var(--actual)" fill-opacity=".07"/><path d="${path(past)}" fill="none" stroke="var(--actual)" stroke-width="2" stroke-linejoin="round"/>`;
+  const pp=[[now,nu],...H.map((h,i)=>[now+h*MIN,p[i]])],pp0=[[now,nu],...H.map((h,i)=>[now+h*MIN,p0[i]])];
+  if(p0.some((v,i)=>Math.abs(v-p[i])>=Math.max(3,loc.cap*.01)))s+=`<path d="${path(pp0)}" fill="none" stroke="var(--nomeld)" stroke-width="2" stroke-dasharray="5 4"/>`;
+  s+=`<path d="${path(pp)}" fill="none" stroke="var(--pred)" stroke-width="2.2"/>`;
+  pp.slice(1).forEach(([t,v])=>{s+=`<circle cx="${X(t)}" cy="${Y(v)}" r="5" fill="var(--pred)" stroke="var(--panel)" stroke-width="2"/><text x="${X(t)}" y="${Y(v)-11}" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--ink)" font-family="var(--mono)" paint-order="stroke" stroke="var(--panel)" stroke-width="3">${Math.round(v)}</text>`});
+  s+=`<circle cx="${X(now)}" cy="${Y(nu)}" r="5" fill="var(--actual)" stroke="var(--panel)" stroke-width="2"/>`;
+  s+=`<line id="xh" y1="${m.t}" y2="${lt+lh}" stroke="var(--ink3)" visibility="hidden"/><rect id="hit" x="${m.l}" y="${m.t}" width="${W-m.l-m.r}" height="${lt+lh-m.t}" fill="transparent"/>`;
+  const svg=$("chart");svg.innerHTML=s;const tip=$("tip"),xh=svg.querySelector("#xh"),hit=svg.querySelector("#hit");
+  hit.onpointermove=e=>{const r=svg.getBoundingClientRect(),t=x0+((e.clientX-r.left)/r.width*W-m.l)/(W-m.l-m.r)*(x1-x0);
+    let b=pts[0];for(const d of pts)if(Math.abs(d[0]-t)<Math.abs(b[0]-t))b=d;
+    xh.setAttribute("x1",X(b[0]));xh.setAttribute("x2",X(b[0]));xh.setAttribute("visibility","visible");
+    const hi=H.findIndex(h=>now+h*MIN===b[0]),w=weerOp(G,b[0]);
+    tip.innerHTML=`<span class="mono">${hm(b[0])}</span> · ${b[0]>now?"echt":"gemeten"} <b class="mono">${b[1]}</b>`+(hi>=0?` · voorspeld <b class="mono">${Math.round(p[hi])}</b> (${pct(loc.kans[keys[idx]][hi])} krap)`:"")+(w?` · ${Math.round(w.c)}°${w.r>0?", "+w.r.toFixed(1).replace(".",",")+" mm":""}`:"");
+    tip.hidden=false;tip.style.left=Math.max(4,Math.min(X(b[0])/W*r.width+10,r.width-tip.offsetWidth-4))+"px"};
+  hit.onpointerleave=()=>{tip.hidden=true;xh.setAttribute("visibility","hidden")};
+}
+
+// ---------- fietsmomenten: dezelfde regels als meldingen.py ----------
+const nl=$("n-loc"),nd=$("n-day"),nt=$("n-time");
+GROEPEN_LIJST.forEach(g=>{const og=document.createElement("optgroup");og.label=g;LOCS.filter(l=>l.groep===g).forEach(l=>og.appendChild(new Option(naamVan(l),l.code)));nl.appendChild(og)});
+for(let d=0;d<4;d++){const t=k0+d*24*HR;nd.add(new Option(dag(t),String(t)))}
+for(let h=6;h<=23;h++)for(const mm of [0,15,30,45])nt.add(new Option(pad(h)+":"+pad(mm),String((h*60+mm)*MIN)));
+const OPTS=["vooraf","update","krap","event","weer","herhaal"];
+let saved=[];try{saved=JSON.parse(localStorage.getItem("fietsmomenten-v3")||"[]").filter(s=>byCode[s.loc])}catch(e){}
+if(!saved.length)saved=[{loc:"AMF001",t:T("2026-09-18T16:00"),o:{vooraf:1,update:1,krap:1,event:1,weer:1,herhaal:0}},
+                        {loc:"LEDN001",t:T("2026-09-17T09:00"),o:{vooraf:1,update:1,krap:1,event:1,weer:1,herhaal:1}}];
+let actief=0;
+const bewaar=()=>{try{localStorage.setItem("fietsmomenten-v3",JSON.stringify(saved))}catch(e){}};
+function vulForm(s){nl.value=s.loc;const d0=new Date(s.t);d0.setHours(0,0,0,0);nd.value=String(d0.getTime());nt.value=String(s.t-d0.getTime());OPTS.forEach(k=>$("o-"+k).checked=!!s.o[k])}
+function leesForm(){return{loc:nl.value,t:+nd.value + +nt.value,o:Object.fromEntries(OPTS.map(k=>[k,$("o-"+k).checked?1:0]))}}
+[nl,nd,nt,...OPTS.map(k=>$("o-"+k))].forEach(el=>el.onchange=()=>toonMeldingen(leesForm()));
+$("needform").onsubmit=e=>{e.preventDefault();saved.push(leesForm());actief=saved.length-1;bewaar();lijst();toonMeldingen(saved[actief])};
+function lijst(){
+  $("saved").innerHTML=saved.map((s,i)=>`<div class="sv ${i===actief?"on":""}" data-i="${i}" tabindex="0"><span><b>${esc(naamVan(byCode[s.loc]))}</b> · ${s.o.herhaal?"elke "+["zondag","maandag","dinsdag","woensdag","donderdag","vrijdag","zaterdag"][new Date(s.t).getDay()]:dag(s.t)} ${hm(s.t)}</span><button type="button" data-del="${i}">verwijder</button></div>`).join("");
+  document.querySelectorAll(".sv").forEach(el=>el.onclick=e=>{
+    const del=e.target.dataset.del;
+    if(del!==undefined){saved.splice(+del,1);actief=0;bewaar();lijst();if(saved[0]){vulForm(saved[0]);toonMeldingen(saved[0])}return}
+    actief=+el.dataset.i;lijst();vulForm(saved[actief]);toonMeldingen(saved[actief])});
+}
+function opMoment(l,c,min){ // lineair tussen nu (0) en de horizons, zoals op_moment() in meldingen.py
+  const key=keys.find(k=>T(k)===c);if(!key||min>H[H.length-1]+15)return null;
+  const P=[0,...H],pv=[series[l.code].get(c),...l.pred[key]],kv=[series[l.code].get(c)<DR?1:0,...l.kans[key]];
+  const mm=Math.min(Math.max(min,0),P[P.length-1]);let j=P.findIndex(h=>h>=mm);const i=Math.max(j-1,0),w=P[j]===P[i]?0:(mm-P[i])/(P[j]-P[i]);
+  return {p:(1-w)*pv[i]+w*pv[j],k:(1-w)*kv[i]+w*kv[j]};
+}
+function alternatief(l,c,min){ // zelfde station eerst, dan hetzelfde gebied, dan de Amsterdamse stations onderling
+  const buur=x=>x.gebied===l.gebied||(x.gebied.startsWith("Amsterdam")&&l.gebied.startsWith("Amsterdam"));
+  const kand=LOCS.filter(x=>x!==l&&buur(x)).map(x=>({x,...opMoment(x,c,min),zelf:x.station===l.station})).filter(a=>a.p>=weinig(a.x.cap)&&a.k<.2);
+  kand.sort((a,b)=>(b.zelf-a.zelf)||(b.p-a.p));
+  return kand[0]?` Alternatief: ${naamVan(kand[0].x)} (~${Math.round(kand[0].p)} verwacht).`:" Geen stalling in de buurt met genoeg fietsen; ga eerder of kies ander vervoer.";
+}
+function toonMeldingen(s){
+  const l=byCode[s.loc],T0=s.t,out=[],tijd=hm(T0),st={verzonden:new Set(),status:null,kand:null};
+  for(let c=T0-6*HR;c<T0;c+=15*MIN){
+    if(c<k0)continue;const min=(T0-c)/MIN;
+    if(s.o.event&&!st.verzonden.has("event")){const e=evFor(l.code).find(e=>e.s-2*HR<=T0&&T0<=e.e+HR);
+      if(e){out.push({t:c,cls:"ev",title:`Evenement rond je fietsmoment (${tijd})`,body:`${esc(e.naam.replace(" (fictief)",""))} (${hm(e.s)}–${hm(e.e)}). De voorraad kan hard dalen; we houden je op de hoogte.`});st.verzonden.add("event")}}
+    if(s.o.weer&&!st.verzonden.has("weer")&&min<=180){const w=weerOp(l.gebied,T0);if(w&&w.r>=.5){out.push({t:c,cls:"rn",title:`Regen rond ${tijd}`,body:`Verwacht ${w.r.toFixed(1).replace(".",",")} mm regen rond ${tijd}. Neem een regenjas mee.`});st.verzonden.add("weer")}}
+    const v=opMoment(l,c,min);if(!v)continue;
+    const [,stt]=statusPK(v.p,v.k,l.cap),alt=stt!=="genoeg"?alternatief(l,c,min):"",kans=`${pct(v.k)} kans op krapte`;
+    const krapTxt=`${esc(naamVan(l))}: waarschijnlijk minder dan ${DR} fietsen (${kans}).${alt}`;
+    if(s.o.vooraf&&!st.verzonden.has("vooraf")&&min<=135){
+      if(stt==="krap"){out.push({t:c,cls:"warn",title:`Let op: krap verwacht om ${tijd}`,body:krapTxt});st.verzonden.add("krap")}
+      else out.push({t:c,cls:"",title:`Je fiets om ${tijd}`,body:`${esc(naamVan(l))}: ~${Math.round(v.p)} fietsen verwacht (${stt}, ${kans}).${alt}`});
+      st.verzonden.add("vooraf");st.status=stt;st.kand=null;
+    }else if(s.o.krap&&stt==="krap"&&!st.verzonden.has("krap")){out.push({t:c,cls:"warn",title:`Let op: krap verwacht om ${tijd}`,body:krapTxt});st.verzonden.add("krap");st.status=stt;st.kand=null}
+    else if(s.o.update&&st.status&&stt!==st.status){
+      if(st.kand===stt){out.push({t:c,cls:stt==="krap"?"warn":"",title:`Update voor ${tijd}`,body:`${esc(naamVan(l))}: nu ~${Math.round(v.p)} fietsen verwacht (${stt}, eerder ${st.status}).${alt}`});st.status=stt;st.kand=null}
+      else st.kand=stt;
+    }else{st.kand=null;if(!st.status)st.status=stt}
+  }
+  const echt=series[l.code].get(T0);
+  $("p-time").textContent=hm(out.length?out[out.length-1].t:T0-30*MIN);$("p-date").textContent=dag(T0);
+  const kaart=n=>`<div class="pn"><div class="app ${n.cls}">${n.cls==="warn"?ICON.krap:n.cls==="ev"?ICON.ev:n.cls==="rn"?ICON.rn:ICON.bike}</div><div><div class="ph"><span>OV-Fietsvoorraad</span><span>${hm(n.t)}</span></div><b>${n.title}</b>${n.body}</div></div>`;
+  $("pns").innerHTML=(out.length?out.map(kaart).join(""):`<div class="pn"><div class="app">${ICON.bike}</div><div><div class="ph"><span>OV-Fietsvoorraad</span><span></span></div><b>Geen meldingen nodig</b>Er lijkt genoeg voorraad. Je hoort alleen iets als dat verandert.</div></div>`)
+    +(echt!==undefined?`<div class="pn after"><div class="app done">${ICON.bike}</div><div><div class="ph"><span>Achteraf</span><span>${tijd}</span></div>Er ${echt===1?"stond":"stonden"} echt <b style="display:inline">${echt}</b> ${echt===1?"fiets":"fietsen"}.</div></div>`:"");
+  const soorten=["vooraf","update","krap","event","weer"].filter(k=>s.o[k]).join(";")||"vooraf";
+  const d=new Date(T0),wanneer=s.o.herhaal?dagen[d.getDay()]:`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  $("csvline").textContent=`Mijn fietsmoment,${l.code},${wanneer},${tijd},${soorten}`;
+}
+$("rnd").textContent=Math.random().toString(36).slice(2,10);
+$("copy").onclick=()=>{const t=$("csvline").textContent,b=$("copy");
+  const klaar=()=>{b.textContent="Gekopieerd";setTimeout(()=>b.textContent="Kopieer",1500)};
+  const kiesTekst=()=>{const r=document.createRange();r.selectNodeContents($("csvline"));const s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent="Geselecteerd";setTimeout(()=>b.textContent="Kopieer",1500)};
+  try{navigator.clipboard.writeText(t).then(klaar,kiesTekst)}catch(e){kiesTekst()}};
+
+// ---------- evenementen-scanner (demo) ----------
+const SCAN=DATA.scan,statNaam={TB:"Tilburg",TBU:"Tilburg Universiteit",TBR:"Tilburg Reeshof",HT:"Den Bosch",HTO:"Den Bosch Oost",RS:"Rosmalen",VG:"Vught",BTL:"Boxtel",O:"Oss",ZBM:"Zaltbommel",UT:"Utrecht Centraal",ASD:"Amsterdam Centraal",RTD:"Rotterdam Centraal",GVC:"Den Haag Centraal",SHL:"Schiphol Airport",LEDN:"Leiden Centraal",EHV:"Eindhoven Centraal",ASDZ:"Amsterdam Zuid",ASS:"Amsterdam Sloterdijk",NM:"Nijmegen",AMF:"Amersfoort"};
+const stNamen=s=>(s||"").split(";").filter(Boolean).map(c=>statNaam[c]||c).join(" + ");
+const kstate={};let gescand=false;
+const fmtDT=s=>{const t=T(s);return dag(t)+" · "+hm(t)};
+const dots=n=>`<span class="dots" aria-label="impact ${n} van 3">${"●".repeat(n)}<b>${"●".repeat(3-n)}</b></span>`;
+function tab(w){["k","d"].forEach(x=>{$("tab-"+x).setAttribute("aria-selected",x===w);$("pane-"+x).hidden=x!==w})}
+$("tab-k").onclick=()=>tab("k");$("tab-d").onclick=()=>tab("d");
+function renderKand(){
+  if(!gescand){$("pane-k").innerHTML=`<p class="hint">Klik op <b>Scan nu</b> om te zien wat de scanner vindt, van Den Bosch tot Rotterdam. Het zijn voorbeelden; stations, afstand en impact zijn door de echte scanner berekend. Zekere vondsten gaan automatisch op de kalender, de rest wacht op jouw oordeel.</p>`;$("cnt-k").textContent="";return}
+  $("cnt-k").textContent=SCAN.kandidaten.filter(k=>kstate[k.id].st==="open").length||"";
+  $("pane-k").innerHTML=SCAN.kandidaten.map(k=>{const s=kstate[k.id],imp=s.impact;
+    const knoppen=s.st==="auto"?`<span class="pill ok">automatisch op de kalender</span><button type="button" data-undo="${k.id}">toch niet</button>`
+      :s.st==="ok"?`<span class="pill ok">op de kalender</span><button type="button" data-undo="${k.id}">ongedaan</button>`
+      :s.st==="nee"?`<span class="pill mute">afgewezen</span><button type="button" data-undo="${k.id}">ongedaan</button>`
+      :s.st==="genegeerd"?`<span class="pill mute">genegeerd: te klein</span><button type="button" data-ok="${k.id}">toch toevoegen</button>`
+      :`<button class="pri" type="button" data-ok="${k.id}">Toevoegen</button><button type="button" data-nee="${k.id}">Afwijzen</button><label style="font-size:12px;color:var(--ink3)">impact <select data-imp="${k.id}" aria-label="Impact">${[0,1,2,3].map(i=>`<option ${i==imp?"selected":""}>${i}</option>`).join("")}</select></label>`;
+    return `<div class="kc ${s.st==="ok"||s.st==="auto"?"ok":s.st==="nee"||s.st==="genegeerd"?"nee":""}"><div><h3>${esc(k.naam)}</h3><div class="when">${fmtDT(k.start)}–${k.eind.slice(11)}</div></div>
+    <dl class="kv"><dt>Waar</dt><dd>${esc(k.locatie)}, ${esc(kort(k.plaats))}</dd>
+    <dt>Stations</dt><dd>${esc(stNamen(k.stations))} · ${k.afstand_km} km</dd>
+    <dt>Bezoekers</dt><dd>${k.bezoekers?Number(k.bezoekers).toLocaleString("nl-NL"):"onbekend"}</dd>
+    <dt>Impact</dt><dd>${dots(+imp)}</dd>
+    <dt>Bron</dt><dd>${esc(k.bron)} · zekerheid ${k.zekerheid}</dd></dl>
+    <div class="acts">${knoppen}</div></div>`}).join("");
+  $("pane-k").querySelectorAll("[data-ok]").forEach(b=>b.onclick=()=>{const id=b.dataset.ok,sel=$("pane-k").querySelector(`[data-imp="${id}"]`);kstate[id]={st:"ok",impact:sel?+sel.value:Math.max(1,kstate[id].impact)};renderKand();renderCal()});
+  $("pane-k").querySelectorAll("[data-imp]").forEach(sel=>sel.onchange=()=>{kstate[sel.dataset.imp].impact=+sel.value});
+  $("pane-k").querySelectorAll("[data-nee]").forEach(b=>b.onclick=()=>{kstate[b.dataset.nee].st="nee";renderKand()});
+  $("pane-k").querySelectorAll("[data-undo]").forEach(b=>b.onclick=()=>{const k=SCAN.kandidaten.find(x=>x.id===b.dataset.undo);kstate[k.id]={st:"open",impact:k.impact};renderKand();renderCal()});
+}
+function beginStatus(){SCAN.kandidaten.forEach(k=>{kstate[k.id]={impact:k.impact,st:k.impact===0?"genegeerd":(k.zekerheid==="hoog"&&k.impact>=1)?"auto":"open"}})}
+const dstate={};
+function renderDips(){
+  $("cnt-d").textContent=SCAN.dips.length;
+  $("pane-d").innerHTML=`<p class="hint">Momenten waarop een stalling veel leger was dan normaal (regenachtige weken tellen niet mee), terwijl er geen evenement bekend was. Gevonden door dips.py op de testdata; het zoeken naar een verklaring is in deze demo nagespeeld.</p>`+SCAN.dips.map((d,i)=>{const s=dstate[i];
+    return `<div class="kc"><div><h3>${esc(kort(d.locatie))}</h3><div class="when">${fmtDT(d.start)}–${d.eind.slice(11)}</div></div>
+    <dl class="kv"><dt>Normaal</dt><dd class="mono">~${d.normaal} fietsen</dd><dt>Gemeten</dt><dd class="mono">${d.gemeten} fietsen <span class="pill krap">−${d.max_tekort}</span></dd></dl>
+    ${s==="zoek"?`<div class="why"><span class="ai">AI zoekt…</span>Nieuws, agenda's en storingen doorzoeken</div>`:s==="klaar"?`<div class="why"><span class="ai">Mogelijke verklaring</span>${esc(d.verklaring)}</div><div class="acts"><button class="pri" type="button" data-add="${i}">Als evenement vastleggen</button></div>`:s==="vast"?`<div class="why"><span class="ai">Mogelijke verklaring</span>${esc(d.verklaring)}</div><div class="acts"><span class="pill ok">vastgelegd: het model leert hiervan</span></div>`:
+    `<div class="acts"><button type="button" data-zoek="${i}">Zoek verklaring</button></div>`}</div>`}).join("");
+  $("pane-d").querySelectorAll("[data-zoek]").forEach(b=>b.onclick=()=>{const i=+b.dataset.zoek;dstate[i]="zoek";renderDips();setTimeout(()=>{dstate[i]="klaar";renderDips()},1400)});
+  $("pane-d").querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{dstate[+b.dataset.add]="vast";renderDips()});
+}
+function renderCal(){
+  const extra=SCAN.kandidaten.filter(k=>gescand&&(kstate[k.id].st==="ok"||kstate[k.id].st==="auto")).map(k=>({kind:"ev",naam:k.naam,wanneer:fmtDT(k.start)+" · "+k.locatie+", "+kort(k.plaats),tags:[stNamen(k.stations),"impact "+["geen","laag","middel","hoog"][kstate[k.id].impact],"via scanner"],s:T(k.start)}));
+  const alle=[...DATA.kalender.map(c=>({...c,s:T(c.s+"T00:00")})),...extra].sort((a,b)=>a.s-b.s);
+  $("cal").innerHTML=alle.map(c=>`<div class="mel"><div class="ico ${c.kind}">${ICON[c.kind]}</div><div><h3>${esc(c.naam)}</h3><div class="sub">${esc(c.wanneer)}</div><div class="tags">${c.tags.map(t=>`<span class="pill ${c.kind==="ev"?"ev":"let"}">${esc(t)}</span>`).join("")}</div></div></div>`).join("");
+}
+$("scanbtn").onclick=()=>{
+  const b=$("scanbtn");b.disabled=true;b.textContent="Bezig met scannen…";const ids=["tm","vg","ag"];
+  ids.forEach(x=>$("src-"+x).className="src");
+  ids.forEach((x,i)=>{setTimeout(()=>$("src-"+x).className="src busy",i*700);setTimeout(()=>$("src-"+x).className="src done",i*700+900)});
+  setTimeout(()=>{gescand=true;beginStatus();b.disabled=false;b.textContent="Scan opnieuw";
+    const n=SCAN.kandidaten.length,auto=SCAN.kandidaten.filter(k=>kstate[k.id].st==="auto").length,open=SCAN.kandidaten.filter(k=>kstate[k.id].st==="open").length;
+    $("scanmeta").textContent=`${n} vondsten · ${auto} automatisch toegevoegd · ${open} wachten op jou`;tab("k");renderKand();renderCal()},ids.length*700+1000);
+};
+
+// ---------- model ----------
+$("score").innerHTML=DATA.score.map(r=>`<tr><td>${r.h} min</td><td class="num win">${r.model.toFixed(1)}</td><td class="num">${r.gelijk.toFixed(1)}</td><td class="num">${r.week==null?"–":r.week.toFixed(1)}</td></tr>`).join("");
+const s2=DATA.score.find(r=>r.h===120)||DATA.score[0];
+if(s2.herkend!=null)$("krapstat").innerHTML=`<div><b>${Math.round(s2.herkend)}%</b><span>van de krapte herkend (2 uur vooruit)</span></div><div><b>${Math.round(s2.terecht)}%</b><span>van de waarschuwingen terecht</span></div>`;
+
+render();vulForm(saved[0]);lijst();toonMeldingen(saved[0]);renderKand();renderDips();renderCal();
+</script>

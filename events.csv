@@ -1,0 +1,8 @@
+# Evenementen die OV-fietsvraag kunnen beïnvloeden. Eén regel per event (of per dag bij meerdaagse events).
+# start/eind: lokale tijd (Europe/Amsterdam), formaat YYYY-MM-DD HH:MM
+# stations: station_codes gescheiden door ; (leeg = hele regio)
+# impact: 1 = merkbaar, 2 = flink, 3 = fietsen gaan zeker op
+# Carnaval, feestdagen en schoolvakanties staan al in kalender.py — die hoef je hier niet in te zetten.
+# Ideeën om bij te houden: wedstrijden FC Den Bosch (De Vliert), beurzen Brabanthallen, events Autotron Rosmalen,
+# Jazz in Duketown (Pinksteren), Bosch Parade, grote concerten/voorstellingen Theater aan de Parade.
+start,eind,naam,stations,impact,bron

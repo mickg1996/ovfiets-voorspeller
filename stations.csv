@@ -1,0 +1,22 @@
+station_code,naam,lat,lng,gebied,vakantieregio,opmerking
+HT,'s-Hertogenbosch,51.6906,5.2936,Regio Den Bosch,Zuid,centrum van de regio (straal 25 km)
+HTO,'s-Hertogenbosch Oost,51.7004,5.3183,Regio Den Bosch,Zuid,
+RS,Rosmalen,51.7166,5.3697,Regio Den Bosch,Zuid,
+VG,Vught,51.6536,5.2888,Regio Den Bosch,Zuid,
+BTL,Boxtel,51.5886,5.3197,Regio Den Bosch,Zuid,
+O,Oss,51.7649,5.5230,Regio Den Bosch,Zuid,
+ZBM,Zaltbommel,51.8102,5.2518,Regio Den Bosch,Zuid,
+TB,Tilburg,51.5605,5.0835,Tilburg,Zuid,eigen gebied (straal 7 km): Tilburg Zuid/Noord/Reeshof/Universiteit
+TBU,Tilburg Universiteit,51.5615,5.0520,Tilburg,Zuid,
+TBR,Tilburg Reeshof,51.5733,4.9929,Tilburg,Zuid,
+UT,Utrecht Centraal,52.0894,5.1101,Utrecht Centraal,Midden,drukste station van NL
+ASD,Amsterdam Centraal,52.3789,4.9003,Amsterdam Centraal,Noord,
+RTD,Rotterdam Centraal,51.9249,4.4690,Rotterdam Centraal,Midden,
+GVC,Den Haag Centraal,52.0808,4.3245,Den Haag Centraal,Midden,
+SHL,Schiphol Airport,52.3094,4.7617,Schiphol Airport,Noord,
+LEDN,Leiden Centraal,52.1664,4.4817,Leiden Centraal,Midden,
+EHV,Eindhoven Centraal,51.4430,5.4813,Eindhoven Centraal,Zuid,
+ASDZ,Amsterdam Zuid,52.3389,4.8730,Amsterdam Zuid,Noord,
+ASS,Amsterdam Sloterdijk,52.3889,4.8378,Amsterdam Sloterdijk,Noord,
+NM,Nijmegen,51.8433,5.8528,Nijmegen,Zuid,
+AMF,Amersfoort Centraal,52.1534,5.3740,Amersfoort Centraal,Midden,extra: o.a. Into the Woods

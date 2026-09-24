@@ -1,0 +1,11 @@
+# Wanneer heb je een OV-fiets nodig? Eén regel per moment; regels met # worden overgeslagen.
+# stalling  : locatiecode (zie 'python predict.py' of de snapshots) of stationcode, bv. HT = alle stallingen van dat station
+# dagen     : een datum (2026-10-05), weekdagen (ma;di;wo;do;vr;za;zo), 'werkdagen' of 'dagelijks'
+# tijd      : HH:MM, het moment dat je de fiets wilt pakken
+# meldingen : welke pushmeldingen je wilt, gescheiden door ;
+#             vooraf = 2 uur van tevoren de verwachting · update = als de verwachting verandert
+#             krap = als het krap dreigt te worden (met alternatief) · event = evenement rond je tijd
+#             weer = regen rond je tijd
+# Voorbeeld (haal het # weg en pas aan):
+# Naar de afspraak,HT,werkdagen,08:30,vooraf;update;krap;event;weer
+naam,stalling,dagen,tijd,meldingen
