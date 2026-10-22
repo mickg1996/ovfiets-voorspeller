@@ -4032,3 +4032,40 @@ ts_utc,station_code,location_code,naam,fietsen,open,lat,lng,gebied
 2026-10-21T22:05:17Z,LEDN,ledn002,"Leiden Centraal, Centrumzijde",57,No,52.16557,4.48259,Leiden Centraal
 2026-10-21T22:05:17Z,EHV,ehv003,Eindhoven Centraal noord (bussen),0,No,51.443676,5.480101,Eindhoven Centraal
 2026-10-21T22:05:17Z,BTL,btl001,Boxtel,21,No,51.58515,5.318988,Regio Den Bosch
+2026-10-22T00:41:09Z,NM,nm001,Nijmegen,286,No,51.842825,5.853375,Nijmegen
+2026-10-22T00:41:09Z,GVC,gvc021,Den Haag Centraal KJ Plein,617,No,52.08129,4.323001,Den Haag Centraal
+2026-10-22T00:41:09Z,ASD,asd008,Amsterdam Centraal  IJzijde West,203,No,52.380095,4.898784,Amsterdam Centraal
+2026-10-22T00:41:09Z,ASS,ass001,Amsterdam Sloterdijk,126,No,52.38903,4.83707,Amsterdam Sloterdijk
+2026-10-22T00:41:09Z,EHV,ehv002,Eindhoven Centraal zuid (centrum),233,No,51.442199,5.480273,Eindhoven Centraal
+2026-10-22T00:41:09Z,AMF,amf001,Amersfoort Centraal,237,No,52.15293,5.37481,Amersfoort Centraal
+2026-10-22T00:41:09Z,AMF,amf002,Amersfoort Mondriaanplein,81,No,52.15446,5.37339,Amersfoort Centraal
+2026-10-22T00:41:09Z,HT,ht001,s-Hertogenbosch,270,No,51.690526,5.295283,Regio Den Bosch
+2026-10-22T00:41:09Z,ASDZ,asdz003,Amsterdam Zuid Mahlerplein,77,No,52.336448,4.873438,Amsterdam Zuid
+2026-10-22T00:41:09Z,ASDZ,asdz001,Amsterdam Zuid Zuidplein,255,No,52.340294,4.873381,Amsterdam Zuid
+2026-10-22T00:41:09Z,TB,tb002,Tilburg Noord,53,No,51.56099,5.086718,Tilburg
+2026-10-22T00:41:09Z,TB,tb003,Tilburg Zuid,209,No,51.5602,5.086418,Tilburg
+2026-10-22T00:41:09Z,O,o002,Oss,26,No,51.76537,5.53079,Regio Den Bosch
+2026-10-22T00:41:09Z,ZBM,zbm002,Zaltbommel,30,No,51.80812,5.26288,Regio Den Bosch
+2026-10-22T00:41:09Z,TL,tl003,Tiel,23,No,51.88973,5.42399,Regio Den Bosch
+2026-10-22T00:41:09Z,ASD,asd010,Amsterdam Centraal Stationsplein,196,Yes,52.378482,4.897678,Amsterdam Centraal
+2026-10-22T00:41:09Z,BSD,bsd001,Beesd,4,Yes,51.899378,5.195893,Regio Den Bosch
+2026-10-22T00:41:09Z,GDM,gdm001,Geldermalsen,7,Yes,51.881767,5.270973,Regio Den Bosch
+2026-10-22T00:41:09Z,HTO,Hto001,'s-Hertogenbosch Oost,8,Yes,51.700711,5.318865,Regio Den Bosch
+2026-10-22T00:41:09Z,LEDN,ledn001,"Leiden Centraal,Uitgang LUMC",309,Yes,52.165578,4.48155,Leiden Centraal
+2026-10-22T00:41:09Z,BSLC,Ow002,Uden,7,Yes,51.660336,5.617622,Regio Den Bosch
+2026-10-22T00:41:09Z,OW,ow001,Oss West,9,Yes,51.758646,5.507076,Regio Den Bosch
+2026-10-22T00:41:09Z,RS,rs001,Rosmalen,8,Yes,51.715439,5.369477,Regio Den Bosch
+2026-10-22T00:41:09Z,RTD,rtd001,Rotterdam Centraal,439,Yes,51.923421,4.469738,Rotterdam Centraal
+2026-10-22T00:41:09Z,SHL,shl001,Schiphol,6,Yes,52.309265,4.759774,Schiphol Airport
+2026-10-22T00:41:09Z,TBR,tbr001,Tilburg Reeshof,4,Yes,51.573442,4.993904,Tilburg
+2026-10-22T00:41:09Z,TBU,tbu001,Tilburg West Universiteit,24,Yes,51.56519,5.052541,Tilburg
+2026-10-22T00:41:09Z,UT,ut020,Utrecht Centraal Stationsplein,928,Yes,52.090746,5.110702,Utrecht Centraal
+2026-10-22T00:41:09Z,UT,ut016,Utrecht Centraal Jaarbeursplein,467,Yes,52.08895,5.10756,Utrecht Centraal
+2026-10-22T00:41:09Z,VG,Vg001,Vught,7,Yes,51.650022,5.292163,Regio Den Bosch
+2026-10-22T00:41:09Z,UT,ut021,Utrecht Centraal Knoop,96,No,52.087374,5.109469,Utrecht Centraal
+2026-10-22T00:41:09Z,ASD,asd002,Amsterdam Centraal Oost,143,No,52.37785,4.902062,Amsterdam Centraal
+2026-10-22T00:41:09Z,OT,Ot001,Oisterwijk,8,Yes,51.582096,5.194357,Regio Den Bosch
+2026-10-22T00:41:09Z,BET,bet001,Best,32,No,51.50841,5.38957,Regio Den Bosch
+2026-10-22T00:41:09Z,LEDN,ledn002,"Leiden Centraal, Centrumzijde",57,No,52.16557,4.48259,Leiden Centraal
+2026-10-22T00:41:09Z,EHV,ehv003,Eindhoven Centraal noord (bussen),0,No,51.443676,5.480101,Eindhoven Centraal
+2026-10-22T00:41:09Z,BTL,btl001,Boxtel,21,No,51.58515,5.318988,Regio Den Bosch
